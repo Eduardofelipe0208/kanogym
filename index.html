@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Kano Fit</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/00E676/000000?text=Kano">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Onboarding Section (Overlay) -->
+    <section id="view-onboarding" class="full-screen-overlay hidden">
+        <div class="container center-content">
+            <h1>Bienvenido a <span class="text-primary">Kano Gym</span></h1>
+            <p>Tu viaje fitness empieza aquí. Configuremos tu perfil.</p>
+
+            <form id="onboarding-form">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" id="ob-name" placeholder="Ej. Alex" required>
+                </div>
+                <div class="form-group row">
+                    <div>
+                        <label>Peso (kg)</label>
+                        <input type="number" id="ob-weight" placeholder="70" required>
+                    </div>
+                    <div>
+                        <label>Altura (cm)</label>
+                        <input type="number" id="ob-height" placeholder="175" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Objetivo Principal</label>
+                    <select id="ob-goal">
+                        <option value="Perder Peso">Perder Peso</option>
+                        <option value="Ganar Músculo">Ganar Músculo</option>
+                        <option value="Mantenerse">Mantenerse</option>
+                        <option value="Resistencia">Resistencia</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary block">Comenzar</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- App Header -->
+    <header class="app-header">
+        <div class="logo">KANO <span class="text-primary">GYM</span></div>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <div class="streak-badge hidden" id="header-streak">🔥 <span id="header-streak-val">0</span></div>
+            <div class="user-avatar-mini" id="header-avatar">?</div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="app-content">
+
+        <!-- Dashboard View -->
+        <section id="view-dashboard" class="view active">
+            <h2>Hola, <span id="dash-username">Atleta</span> 👋</h2>
+
+            <div class="card summary-card">
+                <h3>Resumen Semanal</h3>
+                <div class="stats-row">
+                    <div class="stat">
+                        <span class="val" id="stat-total-workouts">0</span>
+                        <span class="label">Total Entrenos</span>
+                    </div>
+                    <div class="stat">
+                        <span class="val" id="stat-streak">0</span>
+                        <span class="label">Racha (Días)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Peso Corporal (kg)</h3>
+                <canvas id="weightChart"></canvas>
+            </div>
+
+            <div class="card">
+                <h3>Frecuencia de Entreno</h3>
+                <canvas id="workoutChart"></canvas>
+            </div>
+
+            <h3>Acciones Rápidas</h3>
+            <div class="grid-2">
+                <button class="btn-card" onclick="app.navigateTo('view-routines')">
+                    🏋️ Rutinas
+                </button>
+                <button class="btn-card" onclick="app.navigateTo('view-workout')">
+                    ⚡ Entrenar Ahora
+                </button>
+            </div>
+        </section>
+
+        <!-- Routines View -->
+        <section id="view-routines" class="view">
+            <div class="row header-row">
+                <h2>Mis Rutinas</h2>
+                <button class="btn-secondary small" style="border: 1px solid var(--primary); color: var(--primary);"
+                    onclick="app.handlers.startAIGeneration()">✨ Generar con IA</button>
+            </div>
+            <div id="routines-list">
+                <!-- Routine Items will be injected here -->
+                <p class="empty-state">No hay rutinas creadas.</p>
+            </div>
+            <br><br><br> <!-- Spacer for FAB -->
+            <button class="fab" onclick="app.openRoutineBuilder()">+</button>
+        </section>
+
+        <!-- Use a separate section for Builder to avoid nesting complexity -->
+        <section id="view-routine-builder" class="view">
+            <h2>Crear Nueva Rutina</h2>
+            <div class="card">
+                <div class="form-group">
+                    <label>Nombre de la Rutina</label>
+                    <input type="text" id="builder-name" placeholder="Ej. Pierna Vol. 1">
+                </div>
+                <div class="form-group">
+                    <label>Descripción (Opcional)</label>
+                    <input type="text" id="builder-desc" placeholder="Enfoque en cuádriceps...">
+                </div>
+            </div>
+
+            <h3>Ejercicios Seleccionados</h3>
+            <div id="builder-exercises-list">
+                <p class="text-muted text-center" style="padding: 20px;">Añade ejercicios para empezar</p>
+            </div>
+
+            <button class="btn-secondary block dashed-border" onclick="app.openCatalog()">+ Añadir Ejercicio</button>
+
+            <div class="fixed-bottom-actions">
+                <button class="btn-primary block" onclick="app.saveRoutine()">Guardar Rutina</button>
+                <button class="btn-danger block mt-2" onclick="app.navigateTo('view-routines')">Cancelar</button>
+            </div>
+        </section>
+
+
+        <!-- Workout Selection View -->
+        <section id="view-workout" class="view">
+            <h2>Iniciar Entrenamiento</h2>
+            <p>Selecciona una rutina para empezar:</p>
+            <div id="workout-routines-list">
+                <!-- Selectable routines -->
+            </div>
+        </section>
+
+        <!-- Active Workout Session View -->
+        <section id="view-active-workout" class="view">
+            <div class="workout-header sticky">
+                <div>
+                    <h3 id="active-routine-name">Rutina...</h3>
+                    <small id="active-timer">00:00</small>
+                </div>
+                <button class="btn-secondary small" onclick="app.toggleRestTimer()">⏱ Descanso</button>
+            </div>
+
+            <div id="active-exercises-container">
+                <!-- Active Logging UI -->
+            </div>
+
+            <button class="btn-primary block mt-4" style="margin-bottom: 80px;" onclick="app.finishWorkout()">Terminar
+                Sesión</button>
+        </section>
+
+        <!-- Profile View -->
+        <section id="view-profile" class="view">
+            <div class="profile-header">
+                <div class="avatar-large">👤</div>
+                <h2 id="profile-name">Cargando...</h2>
+                <div class="row center-items gap-2">
+                    <span class="badge" id="profile-level">Nivel 1</span>
+                    <span class="badge" id="profile-goal">Objetivo</span>
+                </div>
+
+                <div class="xp-container mt-2">
+                    <div class="xp-bar-bg">
+                        <div class="xp-bar-fill" id="profile-xp-fill" style="width: 0%"></div>
+                    </div>
+                    <p class="text-small text-muted"><span id="profile-xp-val">0</span> XP Total</p>
+                </div>
+            </div>
+
+            <div class="card bmi-card" id="bmi-display">
+                <div class="bmi-value">IMC: --</div>
+                <div class="bmi-label">Calculando...</div>
+            </div>
+
+            <form id="profile-form">
+                <div class="form-group row">
+                    <div>
+                        <label>Peso (kg)</label>
+                        <input type="number" id="p-weight">
+                    </div>
+                    <div>
+                        <label>Altura (cm)</label>
+                        <input type="number" id="p-height">
+                    </div>
+                </div>
+                <button type="submit" class="btn-secondary block">Actualizar Datos</button>
+            </form>
+
+            <button id="btn-reset-app" class="btn-danger block mt-4 hidden">Borrar Todo (Reset)</button>
+
+            <div class="card mt-4" style="border: 1px solid #333;">
+                <h3>⚙️ Gestión de Datos</h3>
+                <p class="text-muted text-small">Tus datos viven en este dispositivo. Haz copias de seguridad
+                    regularmente.</p>
+
+                <div class="row gap-2 mt-2">
+                    <button class="btn-secondary block" onclick="app.handlers.exportData()">💾 Respaldar</button>
+                    <button class="btn-secondary block" onclick="app.handlers.triggerImport()">📂 Restaurar</button>
+                    <input type="file" id="import-file" hidden accept=".json" onchange="app.handlers.importData(this)">
+                </div>
+
+                <button class="btn-danger block mt-2 outlined" onclick="app.handlers.hardReset()">🚨 Borrar Todo
+                    (Fábrica)</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Overlay: Exercise Catalog -->
+    <div id="overlay-catalog" class="full-screen-overlay hidden" style="z-index: 300;">
+        <div class="header-row">
+            <h2>Catálogo</h2>
+            <button onclick="document.getElementById('overlay-catalog').classList.add('hidden')">Cerrar</button>
+        </div>
+
+        <div class="filter-chips" id="catalog-filters">
+            <button class="chip active" data-filter="All">Todos</button>
+            <button class="chip" data-filter="Chest">Pecho</button>
+            <button class="chip" data-filter="Back">Espalda</button>
+            <button class="chip" data-filter="Legs">Piernas</button>
+            <button class="chip" data-filter="Shoulders">Hombros</button>
+            <button class="chip" data-filter="Core">Core</button>
+        </div>
+
+        <div id="catalog-list" class="mt-4">
+            <!-- Exercises -->
+        </div>
+    </div>
+
+    <!-- Overlay: Exercise Detail Modal -->
+    <div id="overlay-detail" class="full-screen-overlay hidden" style="z-index: 400;">
+        <div class="header-row">
+            <h2>Detalle</h2>
+            <button onclick="app.closeDetail()">Cerrar</button>
+        </div>
+
+        <div class="detail-content">
+            <div class="detail-media-container" id="detail-media">
+                <!-- GIF/Video Placeholder -->
+                <div class="img-placeholder">📺</div>
+            </div>
+
+            <h1 id="detail-title" class="mt-4">Nombre del Ejercicio</h1>
+            <div id="detail-tags" class="filter-chips" style="margin-bottom: 20px;">
+                <!-- Tags: Target, Type -->
+            </div>
+
+            <div class="card">
+                <h3>¿Por qué este ejercicio?</h3>
+                <p id="detail-explanation" class="text-muted">...</p>
+            </div>
+
+            <div class="card">
+                <h3>Equipo Necesario</h3>
+                <p id="detail-equipment" class="text-muted">...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay: Rest Timer -->
+    <div id="overlay-timer" class="full-screen-overlay hidden center-content"
+        style="background: rgba(0,0,0,0.9); z-index: 500;">
+        <h1 id="timer-display" style="font-size: 5rem; color: var(--primary);">01:00</h1>
+        <p>Descansando...</p>
+        <div class="row gap-2">
+            <button class="btn-secondary" onclick="app.adjustTimer(30)">+30s</button>
+            <button class="btn-primary" onclick="app.stopRestTimer()">¡Listo!</button>
+        </div>
+    </div>
+
+    <!-- Overlay: Loading AI -->
+    <div id="overlay-loading" class="full-screen-overlay hidden center-content"
+        style="background: rgba(0,0,0,0.95); z-index: 700;">
+        <div class="loader-ring"></div>
+        <h2 class="text-primary mt-4" id="loading-text">Iniciando Análisis...</h2>
+        <p class="text-muted text-small" style="max-width: 300px; margin-top: 10px;">Procesando historial y biometría
+            para prescripción óptima.</p>
+    </div>
+
+    <!-- Overlay: AI Result Preview -->
+    <div id="overlay-ai-result" class="full-screen-overlay hidden" style="z-index: 600;">
+        <div class="header-row">
+            <h2 class="text-primary">Plan Generado</h2>
+            <button onclick="app.handlers.closeAIResult()">Cerrar</button>
+        </div>
+        <div class="container">
+            <div class="ai-badge-container text-center mb-4">
+                <span class="ai-badge">✨ AI OPTIMIZED</span>
+            </div>
+
+            <div class="card" style="border: 1px solid var(--primary);">
+                <h3>Prescripción Técnica</h3>
+                <p id="ai-rationale-text" class="text-small" style="line-height: 1.6; color: #ddd;">...</p>
+            </div>
+
+            <div id="ai-routines-preview">
+                <!-- Generated routines go here -->
+            </div>
+
+            <button class="btn-primary block mt-4" onclick="app.handlers.saveAIResult()">Aplicar a mi
+                Calendario</button>
+        </div>
+    </div>
+
+    <!-- Overlay: Reward Modal -->
+    <div id="overlay-reward" class="full-screen-overlay hidden center-content"
+        style="background: rgba(0,0,0,0.95); z-index: 600;">
+        <div class="reward-content text-center">
+            <h1 style="font-size: 4rem;">🎉</h1>
+            <h2 class="text-primary">¡Entrenamiento Completado!</h2>
+            <br>
+            <div class="card" style="border: 2px solid var(--primary); min-width: 280px;">
+                <h3>Ganancias</h3>
+                <p style="font-size: 1.5rem; font-weight: bold;">+<span id="reward-xp">0</span> XP</p>
+                <div id="reward-streak-bonus" class="hidden mt-2">
+                    <p class="text-muted">Racha mantenida:</p>
+                    <p>🔥 <span id="reward-streak-val">0</span> días</p>
+                </div>
+            </div>
+
+            <button class="btn-primary block mt-4" onclick="app.closeReward()">Continuar</button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-target="view-dashboard">
+            <span class="icon">🏠</span>
+            <span class="label">Inicio</span>
+        </button>
+        <button class="nav-item" data-target="view-routines">
+            <span class="icon">📋</span>
+            <span class="label">Rutinas</span>
+        </button>
+        <button class="nav-item" data-target="view-workout">
+            <span class="icon">💪</span>
+            <span class="label">Entrenar</span>
+        </button>
+        <button class="nav-item" data-target="view-profile">
+            <span class="icon">👤</span>
+            <span class="label">Perfil</span>
+        </button>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script type="module" src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('[SW] Registered'))
+                    .catch(err => console.log('[SW] Error:', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

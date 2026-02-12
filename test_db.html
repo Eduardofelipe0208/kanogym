@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DB Layer Verification</title>
+    <style>
+        body { font-family: monospace; background: #222; color: #eee; padding: 20px; }
+        .pass { color: #4f4; }
+        .fail { color: #f44; }
+        .info { color: #4bf; }
+    </style>
+</head>
+<body>
+    <h1>Database Layer Verification</h1>
+    <div id="output"></div>
+
+    <script type="module">
+        import { initDB, loadData, saveData, deleteData, updateData, DB } from './db.js';
+
+        const output = document.getElementById('output');
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.textContent = `[${type.toUpperCase()}] ${msg}`;
+            div.className = type;
+            output.appendChild(div);
+        }
+
+        function assert(condition, desc) {
+            if (condition) {
+                log(`PASS: ${desc}`, 'pass');
+            } else {
+                log(`FAIL: ${desc}`, 'fail');
+            }
+        }
+
+        async function runTests() {
+            log('Starting Tests...', 'info');
+
+            // 1. Test Initialization
+            DB.clearAll();
+            assert(localStorage.getItem('kano_user_profile') === null, 'Storage cleared');
+            
+            initDB();
+            
+            const user = loadData('kano_user_profile');
+            assert(user && user.name === "New Athlete", 'User profile seeded');
+            
+            const exercises = loadData('kano_exercises');
+            assert(exercises && exercises.length > 0, 'Exercises seeded');
+
+            // 2. Test Persistence
+            const newExercise = { id: 'test_999', name: 'Test Ex', muscleGroup: 'Test', type: 'Test' };
+            const currentEx = DB.getExercises();
+            currentEx.push(newExercise);
+            saveData('kano_exercises', currentEx);
+            
+            const reloadedEx = loadData('kano_exercises');
+            assert(reloadedEx.find(e => e.id === 'test_999'), 'New exercise saved and loaded');
+
+            // 3. Test Helper Methods
+            const workout = { id: 'wk_new', date: new Date().toISOString(), routine: 'Test' };
+            DB.saveWorkout(workout);
+            const workouts = DB.getWorkouts();
+            assert(workouts[0].id === 'wk_new', 'saveWorkout helper works (prepends)');
+
+            // 4. Test Update
+            updateData('kano_user_profile', (u) => {
+                u.weight = 80;
+                return u;
+            });
+            const updatedUser = loadData('kano_user_profile');
+            assert(updatedUser.weight === 80, 'updateData works');
+
+            log('Tests Completed.', 'info');
+        }
+
+        runTests();
+    </script>
+</body>
+</html>
